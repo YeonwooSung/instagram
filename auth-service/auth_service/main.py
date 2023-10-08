@@ -12,6 +12,11 @@ sys.path.append("..")
 from auth_service.utils import limiter, Logger
 from auth_service.utils.db import engine
 from auth_service.middlewares import RequestLogger, RequestID
+from auth_service.api import (
+    subscription_router,
+    token_router,
+    users_router,
+)
 
 
 app = FastAPI(title="Movie API server")
@@ -39,7 +44,9 @@ def on_shutdown() -> None:
 
 
 # add routers
-#TODO
+app.include_router(subscription_router)
+app.include_router(token_router)
+app.include_router(users_router)
 
 
 if __name__ == "__main__":
