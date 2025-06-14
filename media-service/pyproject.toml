@@ -1,18 +1,13 @@
-[tool.poetry]
-name = "media-server"
+[project]
+name = "media-service"
 version = "0.1.0"
-description = ""
-authors = ["YeonwooSung <neos960518@gmail.com>"]
+description = "Add your description here"
 readme = "README.md"
-packages = [{include = "media_server"}]
-
-[tool.poetry.dependencies]
-python = "^3.11"
-fastapi = "^0.103.2"
-uvicorn = "^0.23.2"
-boto3 = "^1.28.62"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires-python = ">=3.12"
+dependencies = [
+    "aiofile>=3.9.0",
+    "boto3>=1.38.34",
+    "dotenv>=0.9.9",
+    "fastapi>=0.115.12",
+    "uvicorn>=0.34.3",
+]

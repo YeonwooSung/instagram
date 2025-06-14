@@ -4,7 +4,7 @@ Full stack Instagram clone, and deploy with Kubernetes.
 
 ## Components
 
-## 1. Discovery Service
+### 1. Discovery Service
 
 [Discovery Service](./discovery-service/)
 
@@ -14,3 +14,7 @@ Whenever an IP or a port of a service changes you’ll need to modify the code i
 
 To avoid this we need a place where services can register itself and assign it a name, this place is “service discovery”.
 You can think of service discovery as DNS, it maps service IP and port to a name.
+
+### 2. Auth Service
+
+[Auth Service](./auth-service/)

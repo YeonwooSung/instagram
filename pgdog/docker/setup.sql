@@ -4,9 +4,9 @@ CREATE TABLE users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
 );
 
-CREATE TABLE payments (
-    id BIGINT PRIMARY KEY,
+CREATE TABLE posts (
+    id UUID PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users (id),
-    amount DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    content TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
 );
