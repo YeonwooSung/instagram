@@ -20,7 +20,7 @@ from auth_service.api import (
 
 
 app = FastAPI(title="Movie API server")
-app.state.limitter = limiter  # add rate limitter
+app.state.limiter = limiter  # add rate limiter
 
 # add middlewares
 app.add_middleware(

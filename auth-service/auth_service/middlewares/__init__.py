@@ -1,8 +1,8 @@
-from .request_id import RequestIdMiddleware
-from .request_logger import RequestLoggerMiddleware
+from .request_id import RequestID
+from .request_logger import RequestLogger
 
 
 __all__ = [
-    "RequestIdMiddleware",
-    "RequestLoggerMiddleware",
+    "RequestID",
+    "RequestLogger",
 ]
