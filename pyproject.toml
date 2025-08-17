@@ -1,7 +1,7 @@
 [project]
 name = "instagram"
 version = "0.1.0"
-description = "Add your description here"
+description = "Instagram from scratch"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
