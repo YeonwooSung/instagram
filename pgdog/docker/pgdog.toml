@@ -1,26 +1,33 @@
-[[databases]]
-name = "postgres"
-host = "shard_0"
-role = "primary"
-shard = 0
+[sharding]
+# 샤딩 키 설정 - user_id 컬럼을 기본 샤딩 키로 사용
+# pg_dog가 자동으로 user_id = $1 형태의 쿼리를 해당 샤드로 라우팅
+sharding_key = "user_id"
 
-[[databases]]
-name = "postgres"
-host = "shard_1"
-role = "primary"
-shard = 1
+# 샤드 설정 (4개 샤드로 시작)
+[[shard]]
+database = "instagram_dm_shard_0"
+host = "localhost"
+port = 5432
+user = "pgdog"
+password = "password"
 
-[[databases]]
-name = "postgres"
-host = "shard_2"
-role = "primary"
-shard = 2
+[[shard]]
+database = "instagram_dm_shard_1"
+host = "localhost"
+port = 5432
+user = "pgdog"
+password = "password"
 
-[[sharded_tables]]
-database = "postgres"
-name = "users"
-column = "id"
+[[shard]]
+database = "instagram_dm_shard_2"
+host = "localhost"
+port = 5432
+user = "pgdog"
+password = "password"
 
-[[sharded_tables]]
-database = "postgres"
-column = "user_id"
+[[shard]]
+database = "instagram_dm_shard_3"
+host = "localhost"
+port = 5432
+user = "pgdog"
+password = "password"
