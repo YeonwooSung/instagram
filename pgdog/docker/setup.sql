@@ -66,6 +66,17 @@ CREATE TABLE users (
 );
 
 
+CREATE TABLE posts (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id), -- 샤딩 키 (pg_dog 자동 라우팅)
+    content TEXT NOT NULL,
+    image_url TEXT,
+    video_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+
 -- 대화방 테이블 (모든 참가자가 복제본을 가짐 - 비정규화)
 -- pg_dog: WHERE conversations.creator_user_id = $1 또는 참가자 정보로 라우팅
 CREATE TABLE conversations (
