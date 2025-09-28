@@ -2,6 +2,14 @@
 
 Full stack Instagram clone, and deploy with Kubernetes.
 
+## Architecture
+
+- Main DB - PostgreSQL (with pg_dog for sharding)
+- S3 (or MinIO) for media storage
+- Redis for caching
+- Kafka for messaging
+- Zookeeper for service discovery
+
 ## Components
 
 ### 1. Discovery Service
