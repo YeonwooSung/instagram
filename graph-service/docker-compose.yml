@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  graph-service:
+    build: .
+    container_name: instagram-graph-service
+    ports:
+      - "8003:8003"
+    environment:
+      # Application
+      DEBUG: "false"
+
+      # Database (using pgdog for sharding)
+      DATABASE_URL: "postgresql://instagram_user:instagram_password@pgdog:6432/instagram"
+      DB_POOL_SIZE: 20
+
+      # Redis
+      REDIS_HOST: "redis"
+      REDIS_PORT: 6379
+      REDIS_ENABLED: "true"
+
+      # Auth Service
+      AUTH_SERVICE_URL: "http://auth-service:8001"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY}"
+
+      # Kafka
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      KAFKA_ENABLED: "true"
+
+      # CORS
+      CORS_ORIGINS: '["*"]'
+
+    depends_on:
+      - redis
+
+    networks:
+      - instagram-network
+
+    restart: unless-stopped
+
+    volumes:
+      - ./graph_service:/app/graph_service
+
+    command: uvicorn graph_service.main:app --host 0.0.0.0 --port 8003 --reload
+
+  redis:
+    image: redis:7-alpine
+    container_name: instagram-redis-graph
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - instagram-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+volumes:
+  redis-data:
+
+networks:
+  instagram-network:
+    external: true
+    name: instagram-network
