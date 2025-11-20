@@ -1,7 +1,7 @@
 [project]
 name = "media-service"
 version = "0.1.0"
-description = "Add your description here"
+description = "Instagram Clone Media Service with image/video processing"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -10,4 +10,11 @@ dependencies = [
     "dotenv>=0.9.9",
     "fastapi>=0.115.12",
     "uvicorn>=0.34.3",
+    "pillow>=10.0.0",
+    "python-multipart>=0.0.6",
+    "asyncpg>=0.29.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "python-magic>=0.4.27",
+    "httpx>=0.25.0",
 ]
