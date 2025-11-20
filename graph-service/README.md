@@ -17,6 +17,8 @@ A microservice for managing social graph relationships (follow/unfollow) in an I
 
 ## Architecture
 
+> 📚 **상세 아키텍처 문서**: [DATABASE_ARCHITECTURE.md](docs/DATABASE_ARCHITECTURE.md)에서 데이터베이스 엔진 선택 이유, 성능 최적화 전략, 확장성 설계에 대한 심층 설명을 확인하세요.
+
 ### Technology Stack
 
 - **Framework**: FastAPI (Python 3.11+)
@@ -24,6 +26,27 @@ A microservice for managing social graph relationships (follow/unfollow) in an I
 - **Cache**: Redis
 - **Message Queue**: Apache Kafka
 - **Authentication**: JWT tokens via Auth Service
+
+### Why This Stack?
+
+각 데이터베이스 엔진은 특정 역할에 최적화되어 있습니다:
+
+- **PostgreSQL**: 영구 저장소 (Source of Truth)
+  - ACID 트랜잭션으로 데이터 일관성 보장
+  - 복잡한 관계 쿼리 지원
+  - pgdog 샤딩으로 수평 확장
+
+- **Redis**: 고성능 캐싱 레이어
+  - 읽기 성능 10-100배 향상
+  - 95%+ 캐시 히트율 목표
+  - 실시간 통계 제공
+
+- **Kafka**: 비동기 이벤트 스트리밍
+  - 서비스 간 느슨한 결합
+  - 이벤트 기반 아키텍처
+  - 높은 처리량 및 확장성
+
+자세한 내용은 [데이터베이스 아키텍처 문서](docs/DATABASE_ARCHITECTURE.md)를 참고하세요.
 
 ### Database Schema
 
