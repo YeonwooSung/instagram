@@ -83,19 +83,19 @@ class KafkaProducerManager:
             "following_id": following_id,
             "timestamp": datetime.utcnow().isoformat(),
         }
-        await self.publish_event("graph.unfollow", str(follower_id), event_data)
+        await self.publish_event(settings.KAFKA_TOPIC_FOLLOW_REMOVED, str(follower_id), event_data)
 
     async def publish_follow_request_accepted_event(
         self, follower_id: int, following_id: int
     ):
         """Publish follow request accepted event"""
         event_data = {
-            "event_type": "follow_request_accepted",
+            "event_type": "follow_accepted",
             "follower_id": follower_id,
             "following_id": following_id,
             "timestamp": datetime.utcnow().isoformat(),
         }
-        await self.publish_event("graph.follow_accepted", str(follower_id), event_data)
+        await self.publish_event(settings.KAFKA_TOPIC_FOLLOW_ACCEPTED, str(follower_id), event_data)
 
     async def publish_follow_request_rejected_event(
         self, follower_id: int, following_id: int
