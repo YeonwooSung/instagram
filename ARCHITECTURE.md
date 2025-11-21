@@ -39,6 +39,49 @@ Instagram 클론 프로젝트는 마이크로서비스 아키텍처로 구성되
 
 ## Microservices
 
+### 0. API Gateway (Port: 8080) ⭐ NEW
+
+**목적**: 단일 진입점으로 모든 클라이언트 요청을 처리하고 적절한 마이크로서비스로 라우팅
+
+**기술 스택**:
+- Go 1.21
+- Gin Web Framework
+- JWT (golang-jwt/jwt)
+- Redis (캐싱)
+- zap (로깅)
+
+**기능**:
+- **리버스 프록시**: 요청을 적절한 마이크로서비스로 라우팅
+- **인증**: JWT 토큰 검증
+- **Rate Limiting**: Token Bucket 알고리즘 기반 요청 제한
+  - Per-IP 제한
+  - Per-User 제한
+- **CORS**: Cross-Origin Resource Sharing 지원
+- **로깅**: 구조화된 로그 (method, path, status, latency, client IP)
+- **Health Check**: 서비스 상태 모니터링
+- **Graceful Shutdown**: 안전한 종료 처리
+
+**라우팅 규칙**:
+- `/api/v1/auth/*` → Auth Service (8001)
+- `/api/v1/media/*` → Media Service (8000)
+- `/api/v1/posts/*` → Post Service (8002)
+- `/api/v1/graph/*` → Graph Service (8003)
+- `/api/v1/feed/*` → Newsfeed Service (8004)
+
+**보안**:
+- JWT 토큰 검증 (HS256)
+- Rate limiting (기본: 100 RPS, Burst: 200)
+- Header sanitization
+- Non-root Docker user
+
+**성능**:
+- 동시 요청 처리
+- HTTP 연결 풀링
+- 설정 가능한 타임아웃
+- 경량 Go 런타임
+
+---
+
 ### 1. Discovery Service (Port: varies)
 
 **목적**: 서비스 디스커버리 및 등록
