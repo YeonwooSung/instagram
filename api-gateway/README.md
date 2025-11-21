@@ -5,8 +5,8 @@ API Gateway for Instagram Clone microservices architecture. Built with Go and Gi
 ## Features
 
 - **Reverse Proxy**: Routes requests to appropriate microservices
-- **Authentication**: JWT token validation
-- **Rate Limiting**: Per-IP and per-user request limiting
+- **Passthrough Authentication**: Forwards JWT tokens to services for validation
+- **Rate Limiting**: Per-IP request limiting using token bucket algorithm
 - **CORS**: Cross-Origin Resource Sharing support
 - **Logging**: Structured logging with zap
 - **Health Checks**: Service health monitoring
@@ -14,12 +14,18 @@ API Gateway for Instagram Clone microservices architecture. Built with Go and Gi
 
 ## Architecture
 
+The gateway operates in **passthrough mode** - it forwards all requests (including Authorization headers) to backend services without validating JWT tokens. Each microservice handles its own authentication, providing better service autonomy and reducing gateway complexity.
+
 ```
-Client → API Gateway → Auth Service (8001)
-                    → Media Service (8000)
-                    → Post Service (8002)
-                    → Graph Service (8003)
-                    → Newsfeed Service (8004)
+Client → API Gateway (Rate Limiting + Logging)
+            ↓ (Forwards request with headers)
+   ┌────────┼────────┐
+   ▼        ▼        ▼
+  Auth    Media    Post      (Each service validates JWT)
+ (8001)  (8000)  (8002)
+   ↓        ▼        ↓
+  Graph  Newsfeed
+ (8003)   (8004)
 ```
 
 ## Routing
@@ -28,30 +34,37 @@ Client → API Gateway → Auth Service (8001)
 - `POST /register` - User registration (public)
 - `POST /login` - User login (public)
 - `POST /refresh` - Refresh token (public)
-- `GET /profile` - Get user profile (protected)
-- `PUT /profile` - Update user profile (protected)
-- `POST /logout` - Logout (protected)
-- `PUT /password` - Change password (protected)
+- `GET /profile` - Get user profile (requires auth - service validates)
+- `GET /me` - Get current user (requires auth - service validates)
+- `PUT /profile` - Update user profile (requires auth - service validates)
+- `POST /logout` - Logout (requires auth - service validates)
+- `PUT /password` - Change password (requires auth - service validates)
+
+**Note**: Authentication is handled by the Auth Service. Send `Authorization: Bearer <token>` header.
 
 ### Media Service (`/api/v1/media`)
-- `POST /upload` - Upload media (protected)
-- `GET /:id` - Get media by ID (protected)
-- `DELETE /:id` - Delete media (protected)
-- `GET /user/:user_id` - Get user's media (protected)
+- `POST /upload` - Upload media (requires auth - service validates)
+- `GET /:id` - Get media by ID (requires auth - service validates)
+- `DELETE /:id` - Delete media (requires auth - service validates)
+- `GET /user/:user_id` - Get user's media (requires auth - service validates)
+
+**Note**: All media operations require authentication. Service validates JWT tokens.
 
 ### Post Service (`/api/v1/posts`)
-- `GET /:id` - Get post by ID (public)
-- `GET /` - List posts (public)
-- `GET /user/:user_id` - Get user's posts (public)
-- `GET /hashtag/:hashtag` - Get posts by hashtag (public)
-- `POST /` - Create post (protected)
-- `PUT /:id` - Update post (protected)
-- `DELETE /:id` - Delete post (protected)
-- `POST /:id/like` - Like post (protected)
-- `DELETE /:id/like` - Unlike post (protected)
-- `POST /:id/comments` - Add comment (protected)
-- `GET /:id/comments` - Get comments (protected)
-- `DELETE /:id/comments/:comment_id` - Delete comment (protected)
+- `GET /:id` - Get post by ID (optional auth for personalization)
+- `GET /` - List posts (optional auth for personalization)
+- `GET /user/:user_id` - Get user's posts (optional auth)
+- `GET /hashtag/:hashtag` - Get posts by hashtag (optional auth)
+- `POST /` - Create post (requires auth - service validates)
+- `PUT /:id` - Update post (requires auth - service validates)
+- `DELETE /:id` - Delete post (requires auth - service validates)
+- `POST /:id/like` - Like post (requires auth - service validates)
+- `DELETE /:id/like` - Unlike post (requires auth - service validates)
+- `POST /:id/comments` - Add comment (requires auth - service validates)
+- `GET /:id/comments` - Get comments (optional auth)
+- `DELETE /:id/comments/:comment_id` - Delete comment (requires auth - service validates)
+
+**Note**: Read operations work without auth. Write operations require authentication.
 
 ### Graph Service (`/api/v1/graph`)
 - `POST /follow/:user_id` - Follow user (protected)

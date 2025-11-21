@@ -27,27 +27,25 @@ func SetupRoutes(
 	api.Use(rateLimiter.RateLimit())
 
 	// ==================== Auth Service Routes ====================
-	// Public routes (no authentication required)
-	authPublic := api.Group("/auth")
+	// All auth routes - service handles authentication internally
+	auth := api.Group("/auth")
 	{
-		authPublic.POST("/register", proxyHandler.ProxyRequest(cfg.AuthServiceURL))
-		authPublic.POST("/login", proxyHandler.ProxyRequest(cfg.AuthServiceURL))
-		authPublic.POST("/refresh", proxyHandler.ProxyRequest(cfg.AuthServiceURL))
-	}
+		// Public routes
+		auth.POST("/register", proxyHandler.ProxyRequest(cfg.AuthServiceURL))
+		auth.POST("/login", proxyHandler.ProxyRequest(cfg.AuthServiceURL))
+		auth.POST("/refresh", proxyHandler.ProxyRequest(cfg.AuthServiceURL))
 
-	// Protected auth routes (requires authentication)
-	authProtected := api.Group("/auth")
-	authProtected.Use(middleware.JWTAuth(cfg.JWTSecret))
-	{
-		authProtected.GET("/profile", proxyHandler.ProxyRequest(cfg.AuthServiceURL))
-		authProtected.PUT("/profile", proxyHandler.ProxyRequest(cfg.AuthServiceURL))
-		authProtected.POST("/logout", proxyHandler.ProxyRequest(cfg.AuthServiceURL))
-		authProtected.PUT("/password", proxyHandler.ProxyRequest(cfg.AuthServiceURL))
+		// Protected routes (service validates JWT)
+		auth.GET("/profile", proxyHandler.ProxyRequest(cfg.AuthServiceURL))
+		auth.GET("/me", proxyHandler.ProxyRequest(cfg.AuthServiceURL))
+		auth.PUT("/profile", proxyHandler.ProxyRequest(cfg.AuthServiceURL))
+		auth.POST("/logout", proxyHandler.ProxyRequest(cfg.AuthServiceURL))
+		auth.PUT("/password", proxyHandler.ProxyRequest(cfg.AuthServiceURL))
 	}
 
 	// ==================== Media Service Routes ====================
+	// All media routes - service handles authentication internally
 	media := api.Group("/media")
-	media.Use(middleware.JWTAuth(cfg.JWTSecret))
 	{
 		// Upload media
 		media.POST("/upload", proxyHandler.ProxyRequest(cfg.MediaServiceURL))
@@ -63,37 +61,33 @@ func SetupRoutes(
 	}
 
 	// ==================== Post Service Routes ====================
+	// All post routes - service handles authentication internally
 	posts := api.Group("/posts")
 	{
-		// Public routes (read-only, optional auth for personalization)
-		posts.GET("/:id", middleware.OptionalJWTAuth(cfg.JWTSecret), proxyHandler.ProxyRequest(cfg.PostServiceURL))
-		posts.GET("", middleware.OptionalJWTAuth(cfg.JWTSecret), proxyHandler.ProxyRequest(cfg.PostServiceURL))
-		posts.GET("/user/:user_id", middleware.OptionalJWTAuth(cfg.JWTSecret), proxyHandler.ProxyRequest(cfg.PostServiceURL))
-		posts.GET("/hashtag/:hashtag", middleware.OptionalJWTAuth(cfg.JWTSecret), proxyHandler.ProxyRequest(cfg.PostServiceURL))
+		// Read operations
+		posts.GET("/:id", proxyHandler.ProxyRequest(cfg.PostServiceURL))
+		posts.GET("", proxyHandler.ProxyRequest(cfg.PostServiceURL))
+		posts.GET("/user/:user_id", proxyHandler.ProxyRequest(cfg.PostServiceURL))
+		posts.GET("/hashtag/:hashtag", proxyHandler.ProxyRequest(cfg.PostServiceURL))
 
-		// Protected routes (requires authentication)
-		postsProtected := posts.Group("")
-		postsProtected.Use(middleware.JWTAuth(cfg.JWTSecret))
-		{
-			// Create, update, delete posts
-			postsProtected.POST("", proxyHandler.ProxyRequest(cfg.PostServiceURL))
-			postsProtected.PUT("/:id", proxyHandler.ProxyRequest(cfg.PostServiceURL))
-			postsProtected.DELETE("/:id", proxyHandler.ProxyRequest(cfg.PostServiceURL))
+		// Write operations (service validates JWT)
+		posts.POST("", proxyHandler.ProxyRequest(cfg.PostServiceURL))
+		posts.PUT("/:id", proxyHandler.ProxyRequest(cfg.PostServiceURL))
+		posts.DELETE("/:id", proxyHandler.ProxyRequest(cfg.PostServiceURL))
 
-			// Like/unlike
-			postsProtected.POST("/:id/like", proxyHandler.ProxyRequest(cfg.PostServiceURL))
-			postsProtected.DELETE("/:id/like", proxyHandler.ProxyRequest(cfg.PostServiceURL))
+		// Like/unlike
+		posts.POST("/:id/like", proxyHandler.ProxyRequest(cfg.PostServiceURL))
+		posts.DELETE("/:id/like", proxyHandler.ProxyRequest(cfg.PostServiceURL))
 
-			// Comments
-			postsProtected.POST("/:id/comments", proxyHandler.ProxyRequest(cfg.PostServiceURL))
-			postsProtected.GET("/:id/comments", proxyHandler.ProxyRequest(cfg.PostServiceURL))
-			postsProtected.DELETE("/:id/comments/:comment_id", proxyHandler.ProxyRequest(cfg.PostServiceURL))
-		}
+		// Comments
+		posts.POST("/:id/comments", proxyHandler.ProxyRequest(cfg.PostServiceURL))
+		posts.GET("/:id/comments", proxyHandler.ProxyRequest(cfg.PostServiceURL))
+		posts.DELETE("/:id/comments/:comment_id", proxyHandler.ProxyRequest(cfg.PostServiceURL))
 	}
 
 	// ==================== Graph Service Routes ====================
+	// All graph routes - service handles authentication internally
 	graph := api.Group("/graph")
-	graph.Use(middleware.JWTAuth(cfg.JWTSecret))
 	{
 		// Follow/unfollow
 		graph.POST("/follow/:user_id", proxyHandler.ProxyRequest(cfg.GraphServiceURL))
@@ -119,8 +113,8 @@ func SetupRoutes(
 	}
 
 	// ==================== Newsfeed Service Routes ====================
+	// All feed routes - service handles authentication internally
 	feed := api.Group("/feed")
-	feed.Use(middleware.JWTAuth(cfg.JWTSecret))
 	{
 		// Get personalized feed
 		feed.GET("", proxyHandler.ProxyRequest(cfg.NewsfeedServiceURL))
@@ -133,11 +127,10 @@ func SetupRoutes(
 	}
 
 	// ==================== Admin Routes ====================
+	// Admin routes - authentication handled here for gateway management
 	admin := api.Group("/admin")
-	admin.Use(middleware.JWTAuth(cfg.JWTSecret))
-	// TODO: Add admin role check middleware
 	{
-		// Gateway stats
+		// Gateway stats (public for monitoring)
 		admin.GET("/stats", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				"message": "Gateway statistics endpoint",
@@ -145,7 +138,7 @@ func SetupRoutes(
 			})
 		})
 
-		// Service health checks
+		// Service health checks (public for monitoring)
 		admin.GET("/health/services", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				"services": gin.H{

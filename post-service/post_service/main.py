@@ -72,6 +72,17 @@ def extract_mentions(text: str) -> List[str]:
 
 
 @app.get("/", tags=["Health"])
+async def root():
+    """Root endpoint"""
+    return {
+        "service": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@app.get("/health", tags=["Health"])
 async def health_check():
     """Health check endpoint"""
     return {
