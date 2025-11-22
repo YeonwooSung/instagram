@@ -85,6 +85,18 @@ def is_video(filename: str) -> bool:
 
 
 @app.get("/", tags=["Health"])
+async def root():
+    """Root endpoint"""
+    return {
+        "service": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "status": "healthy",
+        "storage_type": settings.STORAGE_TYPE,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@app.get("/health", tags=["Health"])
 async def health_check():
     """Health check endpoint"""
     return {

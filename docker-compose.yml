@@ -1,0 +1,290 @@
+version: '3.8'
+
+services:
+  # ==================== API Gateway ====================
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: instagram-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - ENVIRONMENT=development
+      - PORT=8080
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - MEDIA_SERVICE_URL=http://media-service:8000
+      - POST_SERVICE_URL=http://post-service:8002
+      - GRAPH_SERVICE_URL=http://graph-service:8003
+      - NEWSFEED_SERVICE_URL=http://newsfeed-service:8004
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-this}
+      - RATE_LIMIT_RPS=100
+      - RATE_LIMIT_BURST=200
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_DB=0
+    depends_on:
+      - redis
+      - auth-service
+      - media-service
+      - post-service
+      - graph-service
+      - newsfeed-service
+    networks:
+      - instagram-network
+    restart: unless-stopped
+
+  # ==================== Microservices ====================
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./auth_service
+      dockerfile: Dockerfile
+    container_name: instagram-auth-service
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/instagram_auth
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-this}
+      - PORT=8001
+    depends_on:
+      - postgres
+    networks:
+      - instagram-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Media Service
+  media-service:
+    build:
+      context: ./media-service
+      dockerfile: Dockerfile
+    container_name: instagram-media-service
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/instagram_media
+      - REDIS_URL=redis://redis:6379/1
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - PORT=8000
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    networks:
+      - instagram-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Post Service
+  post-service:
+    build:
+      context: ./post-service
+      dockerfile: Dockerfile
+    container_name: instagram-post-service
+    environment:
+      - MONGODB_URL=mongodb://mongo:27017
+      - MONGODB_DATABASE=instagram_posts
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - PORT=8002
+    depends_on:
+      - mongo
+      - kafka
+    networks:
+      - instagram-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Graph Service
+  graph-service:
+    build:
+      context: ./graph-service
+      dockerfile: Dockerfile
+    container_name: instagram-graph-service
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/instagram_graph
+      - REDIS_URL=redis://redis:6379/2
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - PORT=8003
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      - instagram-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Newsfeed Service
+  newsfeed-service:
+    build:
+      context: ./newsfeed-service
+      dockerfile: Dockerfile
+    container_name: instagram-newsfeed-service
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/instagram_newsfeed
+      - REDIS_URL=redis://redis:6379/3
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - GRAPH_SERVICE_URL=http://graph-service:8003
+      - POST_SERVICE_URL=http://post-service:8002
+      - PORT=8004
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+      - graph-service
+      - post-service
+    networks:
+      - instagram-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==================== Databases ====================
+
+  # PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: instagram-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - instagram-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MongoDB
+  mongo:
+    image: mongo:7.0
+    container_name: instagram-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - instagram-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: instagram-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - instagram-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO (S3-compatible object storage)
+  minio:
+    image: minio/minio:latest
+    container_name: instagram-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - instagram-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==================== Message Queue ====================
+
+  # Zookeeper
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: instagram-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - instagram-network
+    restart: unless-stopped
+
+  # Kafka
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: instagram-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - instagram-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+networks:
+  instagram-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  mongo-data:
+  redis-data:
+  minio-data:

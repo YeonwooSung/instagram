@@ -1,0 +1,2 @@
+# This file is intentionally minimal
+# Run 'go mod tidy' to generate the full go.sum file
