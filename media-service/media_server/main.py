@@ -18,7 +18,7 @@ from image_processor import ImageProcessor
 from auth import get_current_user, get_current_user_optional
 from schemas import (
     MediaUploadResponse, MediaDetail, MediaListResponse,
-    MessageResponse, ErrorResponse
+    MessageResponse
 )
 
 
